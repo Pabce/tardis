@@ -1,3 +1,9 @@
+"""
+File: tools.py
+
+Auxiliary functions to find initial conditions, local inertial coordinates, perpendicular four-vectors, etc.
+"""
+
 import numpy as np
 from geodesics import gxx, gtx, gtt, gxt, h
 

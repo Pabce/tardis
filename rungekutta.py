@@ -1,3 +1,11 @@
+"""
+File: rungekutta.py
+
+Custom implementation of the classic rk4 algorithm. Contains the 'rk4' integration function, which takes as arguments:
+a function vector, initial conditions, number of integration steps, constraints on the step size, truncation error
+tolerance and the 'experimental' and 'cutoff' parameters. Returns a solution numpy matrix plus information about the
+integration process.
+"""
 import numpy as np
 
 LIMT = (-152, 152)

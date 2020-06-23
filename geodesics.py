@@ -1,3 +1,11 @@
+"""
+File: geodesics.py
+
+Contains the definition of the metric, the Christoffel symbols, the geodesic equation and wrappers for integrating and
+plotting one or more curves at the same time. If run directly, it will execute whatever code is below
+'if name==__main__'. If called from another file, you may call the functions: 'once', 'sweep' or 'ctc'.
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 import rungekutta as rk

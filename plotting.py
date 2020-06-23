@@ -1,3 +1,11 @@
+"""
+File: plotting.py
+
+Declares a Plotter class. An instance may be initialized by providing a matplotlib figure and axis objects, on which
+the plotting will be done. Contains methods to plot the bubble, trajectories according to many different colorings,
+and others.
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
