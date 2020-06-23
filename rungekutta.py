@@ -12,9 +12,6 @@ LIMT = (-152, 152)
 LIMX = (-152, 152)
 
 np.seterr(over='raise')
-# TODO: IMPORTANT FOR LIGHTCONES! introduce 'limits' in the method, e.g. to stop when certain coordinate is reached, when the vector differs from the modulus, etc.
-# TODO: Maybe modify tolerances? Absolute error in coords (t,x) BUT modulus vs null vector in u0, u1 tangent vectors. Or a relative comparison. !!!!
-
 
 def rk4(f, y0, x0, num, h_start, h_max, h_min, h_max_change, acc, experimental=False, cutoff=False):
     variable_num = len(y0)
@@ -47,8 +44,7 @@ def rk4(f, y0, x0, num, h_start, h_max, h_min, h_max_change, acc, experimental=F
         y3, fxy3 = rk4_step(f, y2, x + h/2, h/2)
         corrected = False
         # EXPERIMENTAL: Reduce tangent vectors to avoid explosion of numerical noise and truncation error.
-        # For plotting trajectories this works great, often extending the geodesic past a "conflictive" point with very
-        # little error. For some reason, using relative errors doesn't work...
+        # For plotting trajectories this works great.
         if experimental:
             if np.abs(y1[0]) > 5 or np.abs(y1[1]) > 5:
                 y1[0] /= 5
@@ -85,16 +81,6 @@ def rk4(f, y0, x0, num, h_start, h_max, h_min, h_max_change, acc, experimental=F
 
             i += 1
             min_warning = 0
-
-        # if (np.abs(true_y_arr[:, i-1] - y_arr[:, i-1]) > 10e-10).any():
-        #     print("ASDJALSKJDÑLKJ")
-        #     print(true_y_arr[:, i-1], y_arr[:, i-1])
-
-        # else:
-        #     print('------------')
-        #     print(y1)
-        #     print(y3)
-        #     print(i, np.abs(y3-y1))
 
         h_new = h * (acc/truncation_err)**0.2
 
