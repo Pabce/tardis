@@ -55,28 +55,6 @@ def hat_function(t, x):
     return h, ht, hx
 
 
-def correction_function(t, x, h, ht, hx):
-    arg1 = (x*x-t*t*(2*h-1) + 20)/t*t
-    arg2 = arg1 - 40/t*t
-    W = 0.5*(np.tanh(arg1) - np.tanh(arg2))
-
-    # To avoid overflow error in the cosh function, we simply set these derivatives to 0 if coordinates are sufficiently
-    # far away from the bubble boundary.
-    if abs(arg1) > 30 or abs(arg2) > 30 or 1==1:
-        W = 0
-        Wt = 0
-        Wx = 0
-    else:
-        sech1 = 1/np.cosh(arg1)**2
-        sech2 = 1/np.cosh(arg2)**2
-
-        Wx = (sech1 - sech2) * 1/t*t * (x - t*t*hx)
-        Wt = -((t ** 3 * ht + x * x + 20) * sech1 + (t ** 3 * ht + x * x - 20) * sech2) / t ** 3
-        print('asdf')
-
-    return W, Wt, Wx
-
-
 # metric (on the x-t plane)
 def gxx(t, x): return 1 - h(t, x)*(2*t**2)/(x**2+t**2)
 def gtt(t, x): return -gxx(t, x)
@@ -124,151 +102,6 @@ def connection_coeffs(t, x):
     return gamma_000, gamma_001, gamma_011, gamma_100, gamma_101, gamma_111
 
 
-def connection_coeffs_correc(t, x):
-    h, ht, hx = hat_function(t, x)
-
-    x2, x3, x4 = x*x, x*x*x, x*x*x*x
-    t2, t3, t4 = t*t, t*t*t, t*t*t*t
-    h2 = h*h
-    t2masx2 = t2 + x2
-    t2masx2_2 = t2masx2*t2masx2
-
-    W, Wt, Wx = correction_function(t,x,h,ht,hx)
-    W2 = W*W
-
-    denom = t2masx2_2 * (t2masx2 - 4*t2*h + 4*h2*(t2 + 2*t4*x*W*t + t3*t3*t2masx2*W2))
-
-    # t*(4*(t2*x2 + x4)*h2 - t* t2masx2_2 *ht + 2*t2masx2*h*(-x2-t2*x*hx + (t3 + 2*t*x2)*ht))
-    gamma_000 = t*((-t2-x2+2*t2*h)*(2*x2*h + t*t2masx2*ht) + 2*h*(x+t2*t2masx2*W)*t * t2masx2
-                * (-t*hx + 2*(x+t2*t2masx2*W) * ht) + 2*h*x2 + 3*t2*t2masx2_2*W + t3*t2masx2_2*Wt) \
-                / denom
-
-    gamma_001 = -t2*(4*x*h2*(t2masx2+t2*x*t2masx2*W) + t2masx2*hx + 2*t2masx2*h*(-x-t2*hx + t*(x+t2*t2masx2*W)*ht)) \
-                /denom
-
-    gamma_011 = t*((2*t2*h2* (t2masx2 + t2*x*t2masx2*W +t2*t2masx2*Wx) - t2masx2_2 * (x+t2*t2masx2 *W)*hx
-                + t*ht) + 2*t2masx2*h*(-t2+ t2*(x+t2*t2masx2*W)*h - t2*t2masx2_2*Wx + t3 *ht)) \
-                / denom
-
-    gamma_100 = 2*t2*h * ((x + t2*t2masx2*W) * (2*x2*h + t *t2masx2 *ht) - (-t2masx2 + 2*t2*h)*t*t2masx2
-                * (t*hx + 2*(x + t2*t2masx2)*W)*ht + 2*h*x2 + 3*t2*t2masx2_2*W + t3*t2masx2_2*Wt) \
-                /denom
-
-    gamma_101 = t*(-4*t2*x*h2 * t2*t2masx2*W - t*t2masx2_2*ht + 2*t2masx2*h*(-x2 + t2*(x + t2*t2masx2*W) + t3*ht)) \
-                /denom
-
-    gamma_111 = t2*((-t2*x2*2*t2*h) * (-2*x*h + t2masx2 * hx) + 2*h*(x+t2*x2 + t2)*W*(2*h*(x2 + t2*t2masx2_2 * Wx) + \
-                t2masx2* (x + t2*t2masx2*W)*hx + t*ht)) \
-                /denom
-
-    return gamma_000, gamma_001, gamma_011, gamma_100, gamma_101, gamma_111
-
-
-@jit(nopython=True)
-def connection_coeffs_symbolic(t, x):
-    gamma_000 = -t * (x ** 2 * (
-                2.0 * t ** 2 * (tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 1) - (t ** 2 + x ** 2) * (
-                    4.0 * ALPHA * t ** 2 * (tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) ** 2 - 1) * (
-                        -A ** 2 + t ** 2 + x ** 2) + 2 * tanh(
-                ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 2.0)) * (
-                                  tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 1.0) - (
-                                  2.0 * t ** 2 * (tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 1) - (
-                                      t ** 2 + x ** 2) * (4.0 * ALPHA * t ** 2 * (
-                                      tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) ** 2 - 1) * (
-                                                                      -A ** 2 + t ** 2 + x ** 2) + 2.0 * tanh(
-                              ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 2.0)) * (-t ** 2 * (
-                tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 1.0) + t ** 2 + x ** 2)) / (
-                            2 * (t ** 2 + x ** 2) * (t ** 2 * x ** 2 * (
-                                tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 1.0) ** 2 + (
-                                                                 -1.0 * t ** 2 * (tanh(ALPHA * (R ** 4 - (
-                                                                     -A ** 2 + t ** 2 + x ** 2) ** 2)) + 1) + t ** 2 + x ** 2) ** 2))
-    gamma_001 = t ** 2 * x * ((2.0 * t ** 2 * (tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 1) - (
-                t ** 2 + x ** 2) * (4.0 * ALPHA * t ** 2 * (
-                tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) ** 2 - 1) * (
-                                                -A ** 2 + t ** 2 + x ** 2) + 2.0 * tanh(
-        ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 2.0)) * (
-                                          tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 1.0) + (
-                                          -t ** 2 * (tanh(
-                                      ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 1.0) + t ** 2 + x ** 2) * (
-                                          -4.0 * ALPHA * (t ** 2 + x ** 2) * (
-                                              tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) ** 2 - 1) * (
-                                                      -A ** 2 + t ** 2 + x ** 2) + 2.0 * tanh(
-                                      ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 2.0)) / (
-                            2 * (t ** 2 + x ** 2) * (t ** 2 * x ** 2 * (
-                                tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 1.0) ** 2 + (
-                                                                 -1.0 * t ** 2 * (tanh(ALPHA * (R ** 4 - (
-                                                                     -A ** 2 + t ** 2 + x ** 2) ** 2)) + 1) + t ** 2 + x ** 2) ** 2))
-    gamma_011 = t * (t ** 2 * x ** 2 * (tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 1.0) * (
-                -4.0 * ALPHA * (t ** 2 + x ** 2) * (
-                    tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) ** 2 - 1) * (
-                            -A ** 2 + t ** 2 + x ** 2) + 2.0 * tanh(
-            ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 2.0) + (-t ** 2 * (
-                tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 1.0) + t ** 2 + x ** 2) * (2.0 * t ** 2 * (
-                tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 1) + 4 * x ** 2 * (tanh(
-        ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 1.0) - (t ** 2 + x ** 2) * (4.0 * ALPHA * t ** 2 * (
-                tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) ** 2 - 1) * (
-                                                                                                       -A ** 2 + t ** 2 + x ** 2) + 8 * ALPHA * x ** 2 * (
-                                                                                                       tanh(ALPHA * (
-                                                                                                                   R ** 4 - (
-                                                                                                                       -A ** 2 + t ** 2 + x ** 2) ** 2)) ** 2 - 1) * (
-                                                                                                       -A ** 2 + t ** 2 + x ** 2) + 4.0 * tanh(
-        ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 4.0))) / (2 * (t ** 2 + x ** 2) * (
-                t ** 2 * x ** 2 * (tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 1.0) ** 2 + (
-                    -1.0 * t ** 2 * (
-                        tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 1) + t ** 2 + x ** 2) ** 2))
-    gamma_100 = -x * (t ** 2 * (
-                2.0 * t ** 2 * (tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 1) - (t ** 2 + x ** 2) * (
-                    4.0 * ALPHA * t ** 2 * (tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) ** 2 - 1) * (
-                        -A ** 2 + t ** 2 + x ** 2) + 2.0 * tanh(
-                ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 2.0)) * (
-                                  tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 1.0) + (
-                                  2.0 * t ** 2 * (tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 1) - (
-                                      t ** 2 + x ** 2) * (4.0 * ALPHA * t ** 2 * (
-                                      tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) ** 2 - 1) * (
-                                                                      -A ** 2 + t ** 2 + x ** 2) + 2 * tanh(
-                              ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 2.0)) * (-t ** 2 * (
-                tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 1.0) + t ** 2 + x ** 2)) / (
-                            2 * (t ** 2 + x ** 2) * (t ** 2 * x ** 2 * (
-                                tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 1.0) ** 2 + (
-                                                                 -1.0 * t ** 2 * (tanh(ALPHA * (R ** 4 - (
-                                                                     -A ** 2 + t ** 2 + x ** 2) ** 2)) + 1) + t ** 2 + x ** 2) ** 2))
-    gamma_101 = -t * (t ** 2 * x ** 2 * (tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 1.0) * (
-                -4.0 * ALPHA * (t ** 2 + x ** 2) * (
-                    tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) ** 2 - 1) * (
-                            -A ** 2 + t ** 2 + x ** 2) + 2.0 * tanh(
-            ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 2.0) - (
-                                  2.0 * t ** 2 * (tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 1) - (
-                                      t ** 2 + x ** 2) * (4.0 * ALPHA * t ** 2 * (
-                                      tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) ** 2 - 1) * (
-                                                                      -A ** 2 + t ** 2 + x ** 2) + 2.0 * tanh(
-                              ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 2.0)) * (-t ** 2 * (
-                tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 1.0) + t ** 2 + x ** 2)) / (
-                            2 * (t ** 2 + x ** 2) * (t ** 2 * x ** 2 * (
-                                tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 1.0) ** 2 + (
-                                                                 -1.0 * t ** 2 * (tanh(ALPHA * (R ** 4 - (
-                                                                     -A ** 2 + t ** 2 + x ** 2) ** 2)) + 1) + t ** 2 + x ** 2) ** 2))
-    gamma_111 = -t ** 2 * x * ((tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 1.0) * (
-                2.0 * t ** 2 * (tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 1) + 4 * x ** 2 * (
-                    tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 1.0) - (t ** 2 + x ** 2) * (
-                            4.0 * ALPHA * t ** 2 * (
-                                tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) ** 2 - 1) * (
-                                        -A ** 2 + t ** 2 + x ** 2) + 8 * ALPHA * x ** 2 * (
-                                        tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) ** 2 - 1) * (
-                                        -A ** 2 + t ** 2 + x ** 2) + 4.0 * tanh(
-                        ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 4.0)) - (-t ** 2 * (
-                tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 1.0) + t ** 2 + x ** 2) * (
-                                           -4.0 * ALPHA * (t ** 2 + x ** 2) * (
-                                               tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) ** 2 - 1) * (
-                                                       -A ** 2 + t ** 2 + x ** 2) + 2.0 * tanh(
-                                       ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 2.0)) / (
-                            2 * (t ** 2 + x ** 2) * (t ** 2 * x ** 2 * (
-                                tanh(ALPHA * (R ** 4 - (-A ** 2 + t ** 2 + x ** 2) ** 2)) + 1.0) ** 2 + (
-                                                                 -1.0 * t ** 2 * (tanh(ALPHA * (R ** 4 - (
-                                                                     -A ** 2 + t ** 2 + x ** 2) ** 2)) + 1) + t ** 2 + x ** 2) ** 2))
-
-    return np.array([gamma_000, gamma_001, gamma_011, gamma_100, gamma_101, gamma_111])
-
-
 @jit(nopython=True)
 def connection_coeffs_numba(t, x):
     traj = (x * x + t * t - A2)
@@ -311,17 +144,9 @@ def connection_coeffs_numba(t, x):
 
 def fun_rk(lam, y):
     u0, u1, t, x = y
-
-    # cgamma_000, cgamma_001, cgamma_011, cgamma_100, cgamma_101, cgamma_111 = connection_coeffs(t, x)
+    
     gamma_000, gamma_001, gamma_011, gamma_100, gamma_101, gamma_111 = connection_coeffs(t, x)
 
-    #print(cgamma_000 - gamma_000, cgamma_001 - gamma_001, cgamma_011 - gamma_011, cgamma_100 - gamma_100, cgamma_101 - gamma_101, cgamma_111 - gamma_111)
-
-    # print(param_correction(lam), 'ads')
-    # print(-(gamma_000*u0**2 + 2*gamma_001*u1*u0 + gamma_011 * u1**2))
-    #a0, a1 = tools.get_normalized_perpendicular(u0, u1, t, x, sign="minus")
-    #print(u0, u1, a0, a1)
-    #print(gtt(t,x)*a0*u0 + gxt(t,x)*a0*u1+ gxt(t,x)*a1*u0+gxx(t,x)*a1*u1)
     u02 = u0 * u0
     u12 = u1 * u1
 
@@ -347,7 +172,7 @@ def fun_rk_ctc(lam, y):
 
     return np.array([f1, f2, f3, f4])
 
-# TODO: change x for lambda to reduce confusion (LAM HERE IS X IN RK4!!!) (HERE X IS THE COORDINATE)
+
 # A correction to the geodesic eq. introduced when using a non-affine parameter
 def param_correction(lam):
     # alpha = cos(lam) + lam**2
@@ -370,9 +195,9 @@ def plot_stuff(y, lam, step, err, figure, axis):
 
     # Time arrows, light cones, etc (uncomment as needed). FOR PLOTTING EQUISPACED ARROWS, TURN EXPERIMENTAL OFF!
     mpt.plot_light_time(15, 6, lightcones=True, time_arrows=True, trajectory=y, param=lam)
-    #mpt.plot_light_time(14, 6, param_direction=True, tangents=False, trajectory=y, param=lam)
+    mpt.plot_light_time(14, 6, param_direction=True, tangents=False, trajectory=y, param=lam)
 
-    # Secondary figures:
+    # Secondary figures, uncomment as needed:
     # plt.figure(4)
     # plt.plot(y[0,:])
     # plt.plot(lam, get_initial_cond(y[0,:], y[2,:], y[3,:])/y[1,:], color='red')
@@ -388,9 +213,7 @@ def plot_stuff(y, lam, step, err, figure, axis):
     #plt.figure(3)
     #plt.plot(lam, step)
 
-
-# TODO: Only one colorbar to appear if you plot different ranges. Option to plot "backwards and forwards".
-#  Colorcode according to origin/ending. Ability to plot to a desired color. Ability to plot only certain types.
+    
 # Yow may specify a t and x range or a radius and an angle range. Also, either u1 o three_velocity is required
 # Plotter is a plotter object (from plotting.py)
 def sweep(t_range, x_range, steps, num, modulus, u1=np.inf, three_velocity=np.inf, radius=None, angle_range=None,
@@ -449,15 +272,6 @@ def sweep(t_range, x_range, steps, num, modulus, u1=np.inf, three_velocity=np.in
         y, true_y, lam, step, err = sol
 
         mpt.plot_trajectory(true_y, lam, step, err, colormap=[0,1,1,0,1], limits=[0,4], colorbar="once", solid=True, width=2, nature=nature)
-        plt.figure(2)
-        #plt.plot(lam, [modulus]*len(y[0,:]), color='red')
-        #plt.plot(lam, tools.get_squared_mod(*y)*np.sin(tools.get_squared_mod(*y)*10**15)*1.01 -1)
-        #plt.plot(lam, tools.get_squared_mod(*y))
-        plt.tick_params(axis='both', which='major', labelsize=16)
-        plt.xlabel(r'Affine parameter $(\lambda)$', fontsize=16)
-        plt.ylabel(r'Local speed', fontsize=16)
-        plt.plot(lam, tools.get_3speed_on_trajectory(y))
-
 
 
 def once():
@@ -465,46 +279,18 @@ def once():
     lam0 = 10
     mod = -1
 
-    # -100, -50 (u1_0 = -1, plus) nice
-    # -150, -20 problematic
-    # -150, -200 REALLY Problematic
-    # CAREFUL! REVIEW INITIAL CONDITIONS!!! (also for non-null...)
-    t0, x0 = 80, 80
-    u1_0 = -1
-    u0_0, u1_0 = tools.get_initial_cond(t0, x0, 0, u1=-1, sign="plus")
-    y0 = [u0_0, u1_0, t0, x0]
-
-
-    t1, x1, u1_1 = -150, -35, 0
-    u0_1, u1_1 = tools.get_initial_cond(t1, x1, -1, three_velocity=0.64, sign="minus")
-    #print(u1_1/u0_1)
-    y1 = [u0_1, u1_1, t1, x1]
-
-    print(y1)
-
     start_time = time.time()
 
-    y2, true_y, lam2, step2, err2 = rk.rk4(fun_rk, y1, x0=lam0, num=18000, h_start=0.02, h_max=10**1,
+    y2, true_y, lam2, step2, err2 = rk.rk4(fun_rk, y0, x0=lam0, num=18000, h_start=0.02, h_max=10**1,
                                    h_min=10 ** -7, h_max_change=1.5, acc=10 ** -9, experimental=False, cutoff=True)
     print('Smallest step taken was ', np.min(step2))
 
-    # tend = 300.0; dt0 = 10e-10; atol = 1e-11; rtol = 1e-11
-    # lamout, yout, info = pyode(fun_pyode, None, y0, lam0, tend, dt0, atol, rtol, method='bs', nsteps=10000)
 
     print("--- %s seconds ---" % (time.time() - start_time))
     pprint.pprint(y2[:, -1])
 
     fig, ax = plt.subplots(figsize=(11, 9))
     plot_stuff(true_y, lam2, step2, err2, fig, ax)
-    # mpt = plotting.Plotter(fig, ax, A, R, ALPHA)
-    # mpt.plot_light_time(15, True, True, radius=100)
-
-    # plt.figure(10)
-    # plt.plot(lam2, y2[0,:])
-
-    # plt.figure(9)
-    # plt.plot(y2[0,:])
-
 
 
 def ctc():
@@ -534,47 +320,18 @@ def ctc():
 
 
 if __name__ == '__main__':
-    #ctc()
-    #once()
-    #sweep((-150, -150), (-160, 170), 4, 1003, -1, three_velocity=0.999)
-    #sweep((0, 0), (80, 115), 5, 6000, -1, u1=0)
-
     #CTCs
-    #sweep((0,0), (100.35,121), 1, 5000, -1, u1=0, nature="ctc")
+    #sweep((0,0), (80,121), 5, 5000, -1, u1=0, nature="ctc")
 
     fig, ax = plt.subplots(figsize=(11, 9))
     aplotter = plotting.Plotter(fig, ax, A, R, ALPHA)
 
     aplotter.plot_bubble()
 
-    # Lighcone bullshit
-    # s = 5
-    # aplotter.plot_light_time(4, s, lightcones=True, time_arrows=True, radius=12)
-    # aplotter.plot_light_time(9, s, lightcones=True, time_arrows=True, radius=30)
-    # aplotter.plot_light_time(11, s, lightcones=True, time_arrows=True, radius=50)
-    # aplotter.plot_light_time(13, s, lightcones=True, time_arrows=True, radius=70)
-    # aplotter.plot_light_time(15, s, lightcones=True, time_arrows=True, radius=90)
-    # aplotter.plot_light_time(17, s, lightcones=True, time_arrows=True, radius=110)
-    # aplotter.plot_light_time(19, s, lightcones=True, time_arrows=True, radius=122.3)
-    # aplotter.plot_light_time(21, s, lightcones=True, time_arrows=True, radius=140)
-    # aplotter.plot_light_time(23, s, lightcones=True, time_arrows=True, radius=160)
-    # aplotter.plot_light_time(25, s, lightcones=True, time_arrows=True, radius=180)
-    # aplotter.plot_light_time(27, s, lightcones=True, time_arrows=True, radius=200)
-
-    # for i in range(200):
-    #     aplotter.plot_lightcone(0, -110.12 - i*0.2, 0.1)
-    #     aplotter.plot_time_arrow(0, -110.12 - i * 0.2, 0.1)
-
-    # aplotter.plot_light_time(1397, 0.15, lightcones=True, time_arrows=True, radius=121)
-    # aplotter.plot_light_time(1397, 0.15, lightcones=True, time_arrows=True, radius=122.066)
-    # aplotter.plot_light_time(1397, 0.15, lightcones=True, time_arrows=True, radius=123)
-
     # Null sweeping
     sweep((-150, -150), (-450, 145), 60, 6000, 0, u1=1, plotter=aplotter, sign='minus')
     # sweep((-150, -150), (-145, 450), 65, 6000, 0, u1=-1, sign='minus', plotter=aplotter)
     #sweep((-120, +170), (297, -154), 57, 6000, 0, u1=1, plotter=aplotter, sign='plus')
     #sweep((+150, +150), (-150, 440), 70, 6000, 0, u1=-1, plotter=aplotter, sign='plus')
-
-    #sweep(0, 0, 200, 2500, 0, u1=1, radius=123, angle_range=(np.pi/2, np.pi))
 
     plt.show()
