@@ -235,23 +235,6 @@ class Plotter:
             self.has_title = True
 
 
-    def get_titles(self, colormap, c_map, mod):
-
-        return
-
-
-    def plot_secondary(self, y, lam, step, error):
-        return
-
-
-    # Plot tangent vector at a given point
-    def plot_tangent_vector(self, trajectory, t, x):
-        # y = trajectory
-        #
-        # self.ax.arrow(x, t, d[j][1] * size, d[j][0] * size, head_width=1.5, width=0.15, color="orange")
-        return
-
-
     def plot_lightcone(self, t, x, size):
         d = tools.find_local_lightcone(t, x)
 
