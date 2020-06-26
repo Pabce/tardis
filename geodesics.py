@@ -8,12 +8,12 @@ plotting one or more curves at the same time. If run directly, it will execute w
 
 import numpy as np
 import matplotlib.pyplot as plt
-import rungekutta as rk
 import pprint
 import time
 
 from numba import jit
 
+import rungekutta as rk
 import plotting
 import tools
 
